@@ -1,0 +1,8 @@
+backend/.venv/
+backend/data/
+backend/experiments/lenet_mnist/runs/
+backend/experiments/lenet_mnist/checkpoints/
+**/__pycache__/
+**/.pytest_cache/
+node_modules/
+.env
