@@ -101,23 +101,15 @@ def _store_artifacts_and_metrics(
     return str(paths["config"]), str(paths["metrics"])
 
 
-def run_m1_experiment(
-    session_factory: sessionmaker,
+def _build_command(
     *,
-    paper_id: int | None = None,
-    plan_id: int | None = None,
-    epochs: int = 5,
-    batch_size: int = 64,
-    learning_rate: float = 0.001,
-    device: str = "auto",
-    max_train_samples: int | None = None,
-    max_test_samples: int | None = None,
-    timeout_seconds: float = 3600,
-) -> str:
-    """Run M1 as a subprocess while recording line-by-line logs and status."""
-    if timeout_seconds <= 0 or not math.isfinite(timeout_seconds):
-        raise ValueError("timeout_seconds must be a finite number greater than zero")
-
+    epochs: int,
+    batch_size: int,
+    learning_rate: float,
+    device: str,
+    max_train_samples: int | None,
+    max_test_samples: int | None,
+) -> list[str]:
     command = [
         sys.executable,
         "-m",
@@ -135,7 +127,32 @@ def run_m1_experiment(
         command.extend(("--max-train-samples", str(max_train_samples)))
     if max_test_samples is not None:
         command.extend(("--max-test-samples", str(max_test_samples)))
+    return command
 
+
+def queue_m1_experiment(
+    session_factory: sessionmaker,
+    *,
+    paper_id: int | None = None,
+    plan_id: int | None = None,
+    epochs: int = 5,
+    batch_size: int = 64,
+    learning_rate: float = 0.001,
+    device: str = "auto",
+    max_train_samples: int | None = None,
+    max_test_samples: int | None = None,
+    timeout_seconds: float = 3600,
+) -> str:
+    if timeout_seconds <= 0 or not math.isfinite(timeout_seconds):
+        raise ValueError("timeout_seconds must be a finite number greater than zero")
+    command = _build_command(
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        device=device,
+        max_train_samples=max_train_samples,
+        max_test_samples=max_test_samples,
+    )
     experiment_id = str(uuid.uuid4())
     with session_factory() as session:
         session.add(
@@ -149,8 +166,56 @@ def run_m1_experiment(
             )
         )
         session.commit()
+    return experiment_id
+
+
+def run_m1_experiment(
+    session_factory: sessionmaker,
+    *,
+    experiment_id: str | None = None,
+    paper_id: int | None = None,
+    plan_id: int | None = None,
+    epochs: int = 5,
+    batch_size: int = 64,
+    learning_rate: float = 0.001,
+    device: str = "auto",
+    max_train_samples: int | None = None,
+    max_test_samples: int | None = None,
+    timeout_seconds: float = 3600,
+) -> str:
+    """Run M1 as a subprocess while recording line-by-line logs and status."""
+    if timeout_seconds <= 0 or not math.isfinite(timeout_seconds):
+        raise ValueError("timeout_seconds must be a finite number greater than zero")
+
+    command = _build_command(
+        epochs=epochs,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        device=device,
+        max_train_samples=max_train_samples,
+        max_test_samples=max_test_samples,
+    )
+    if experiment_id is None:
+        experiment_id = queue_m1_experiment(
+            session_factory,
+            paper_id=paper_id,
+            plan_id=plan_id,
+            epochs=epochs,
+            batch_size=batch_size,
+            learning_rate=learning_rate,
+            device=device,
+            max_train_samples=max_train_samples,
+            max_test_samples=max_test_samples,
+            timeout_seconds=timeout_seconds,
+        )
+    with session_factory() as session:
         experiment = session.get(Experiment, experiment_id)
-        assert experiment is not None
+        if experiment is None:
+            raise LookupError(f"Queued experiment {experiment_id} was not found")
+        if experiment.status != "QUEUED":
+            raise ValueError(f"Experiment {experiment_id} is not QUEUED")
+        experiment.command_json = json.dumps(command)
+        experiment.timeout_seconds = timeout_seconds
         experiment.status = "RUNNING"
         experiment.started_at = _now()
         session.commit()
