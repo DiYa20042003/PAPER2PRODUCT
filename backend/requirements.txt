@@ -4,3 +4,4 @@ torch==2.11.0+cpu
 torchvision==0.26.0+cpu
 fastapi==0.135.1
 pytest==8.4.2
+SQLAlchemy==2.0.44
