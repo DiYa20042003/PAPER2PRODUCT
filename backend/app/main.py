@@ -312,7 +312,7 @@ def get_latest_plan(
         )
         if plan is None:
             raise HTTPException(status_code=404, detail="No reproduction plan exists")
-        return {"plan_id": plan.id, **json.loads(plan.content_json)}
+        return {**json.loads(plan.content_json), "plan_id": plan.id}
 
 
 @app.post("/experiments", status_code=202, response_model=ExperimentResponse, tags=["experiments"])
@@ -494,7 +494,7 @@ def paper_report(
             "understanding": json.loads(paper.understanding_json)
             if paper.understanding_json
             else None,
-            "plan": {"plan_id": plan.id, **json.loads(plan.content_json)} if plan else None,
+            "plan": {**json.loads(plan.content_json), "plan_id": plan.id} if plan else None,
             "comparison": json.loads(score.explanation_json) if score else None,
         }
 

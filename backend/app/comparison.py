@@ -138,6 +138,8 @@ def _persist_report(
         session.add(score_row)
         session.commit()
         report["comparison_id"] = score_row.id
+        score_row.explanation_json = json.dumps(report, ensure_ascii=False)
+        session.commit()
     return report
 
 
@@ -162,6 +164,14 @@ def compare_reproduction(
             )
         )
         experiment_id = plan.get("experiment_id")
+        if experiment_id is None:
+            linked_experiment = session.scalar(
+                select(Experiment)
+                .where(Experiment.plan_id == plan_id)
+                .order_by(Experiment.started_at.desc(), Experiment.id.desc())
+                .limit(1)
+            )
+            experiment_id = linked_experiment.id if linked_experiment else None
         experiment = session.get(Experiment, experiment_id) if experiment_id else None
 
     blockers: list[str] = []
@@ -323,6 +333,11 @@ def compare_reproduction(
     else:
         status = "NOT_REPRODUCED"
         rationale = "The absolute error-rate difference exceeds the partial reproduction threshold."
+    if differences:
+        rationale = (
+            f"{rationale} "
+            "Mid-sem reproduction configuration differs from the original experimental setup."
+        )
 
     reference_section = section_by_id[original_performance["section_id"]]
     evidence_summary = {
