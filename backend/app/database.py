@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import URL, create_engine
+from sqlalchemy import URL, create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -36,6 +36,20 @@ def make_session_factory(engine: Engine) -> sessionmaker[Session]:
 
 def initialize_database(engine: Engine) -> None:
     Base.metadata.create_all(engine)
+    paper_columns = {
+        "authors_json": "TEXT NOT NULL DEFAULT '[]'",
+        "metadata_json": "TEXT NOT NULL DEFAULT '{}'",
+        "understanding_json": "TEXT",
+    }
+    existing_columns = {
+        column["name"] for column in inspect(engine).get_columns("papers")
+    }
+    with engine.begin() as connection:
+        for name, definition in paper_columns.items():
+            if name not in existing_columns:
+                connection.execute(
+                    text(f"ALTER TABLE papers ADD COLUMN {name} {definition}")
+                )
 
 
 engine = make_engine()

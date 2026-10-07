@@ -1,6 +1,6 @@
 import math
 
-from sqlalchemy import URL, create_engine, select
+from sqlalchemy import URL, create_engine, inspect, select, text
 from sqlalchemy.orm import sessionmaker
 
 from app.database import initialize_database, make_engine
@@ -132,3 +132,19 @@ def test_sqlite_database_persists_paper_records(tmp_path) -> None:
         assert paper is not None
         assert paper.source == "test"
     reopened_engine.dispose()
+
+
+def test_database_initialization_adds_new_paper_metadata_columns() -> None:
+    engine = create_engine("sqlite://")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "CREATE TABLE papers ("
+                "id INTEGER PRIMARY KEY, title TEXT, source VARCHAR(32), "
+                "source_ref TEXT, abstract TEXT, status VARCHAR(32), created_at DATETIME)"
+            )
+        )
+    initialize_database(engine)
+    columns = {column["name"] for column in inspect(engine).get_columns("papers")}
+    assert {"authors_json", "metadata_json", "understanding_json"} <= columns
+    engine.dispose()
