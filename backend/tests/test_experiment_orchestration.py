@@ -148,3 +148,28 @@ def test_database_initialization_adds_new_paper_metadata_columns() -> None:
     columns = {column["name"] for column in inspect(engine).get_columns("papers")}
     assert {"authors_json", "metadata_json", "understanding_json"} <= columns
     engine.dispose()
+
+
+def test_database_initialization_makes_score_and_run_optional() -> None:
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("DROP TABLE reproducibility_scores")
+        connection.exec_driver_sql(
+            "CREATE TABLE reproducibility_scores ("
+            "id INTEGER PRIMARY KEY, experiment_id VARCHAR(36) NOT NULL, "
+            "score FLOAT NOT NULL, status VARCHAR(32) NOT NULL, "
+            "explanation_json TEXT NOT NULL, created_at DATETIME NOT NULL)"
+        )
+        connection.exec_driver_sql(
+            "CREATE INDEX ix_reproducibility_scores_experiment_id "
+            "ON reproducibility_scores (experiment_id)"
+        )
+    initialize_database(engine)
+    columns = {
+        column["name"]: column for column in inspect(engine).get_columns("reproducibility_scores")
+    }
+    assert columns["experiment_id"]["nullable"] is True
+    assert columns["score"]["nullable"] is True
+    assert "plan_id" in columns
+    engine.dispose()

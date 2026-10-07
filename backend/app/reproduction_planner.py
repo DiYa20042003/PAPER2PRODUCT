@@ -53,6 +53,7 @@ class ReproductionPlan(BaseModel):
 
     plan_id: int | None = None
     paper_id: int
+    experiment_id: str | None = None
     status: Literal["READY", "BLOCKED"]
     objective: str
     original_setup: dict[str, Any]
@@ -71,7 +72,11 @@ def _flat_text(text: str) -> str:
 
 
 def _find_evidence(
-    sections: list[PaperSection], term: str, *, exact_phrase: bool = False
+    sections: list[PaperSection],
+    term: str,
+    *,
+    exact_phrase: bool = False,
+    exact_sentence: bool = False,
 ) -> SourceEvidence | None:
     for section in sections:
         flattened = _flat_text(section.content)
@@ -82,6 +87,20 @@ def _find_evidence(
         term_length = match.end() - match.start()
         if exact_phrase:
             quote = flattened[match.start() : match.end()]
+        elif exact_sentence:
+            preceding = list(
+                re.finditer(
+                    r"(?<=[.!?])\s+(?=[A-Z0-9])",
+                    flattened[: match.start()],
+                )
+            )
+            start = preceding[-1].end() if preceding else 0
+            following = re.search(
+                r"(?<=[.!?])\s+(?=[A-Z0-9])",
+                flattened[match.end() :],
+            )
+            end = match.end() + following.start() if following else len(flattened)
+            quote = flattened[start:end].strip()
         else:
             start = max(0, offset - 140)
             end = min(len(flattened), offset + term_length + 280)
@@ -264,7 +283,13 @@ def create_reproduction_plan(
             raise ValueError(f"Paper {paper_id} has no parsed sections")
 
         evidence = {
-            key: _find_evidence(sections, term, exact_phrase=key == "dataset_counts")
+            key: _find_evidence(
+                sections,
+                term,
+                exact_phrase=key == "dataset_counts",
+                exact_sentence=key
+                in {"baseline_performance", "augmentation_performance"},
+            )
             for key, term in EVIDENCE_TERMS.items()
         }
         blockers = [
@@ -301,6 +326,7 @@ def create_reproduction_plan(
         if run_data is None:
             plan = ReproductionPlan(
                 paper_id=paper_id,
+                experiment_id=experiment_id,
                 status="BLOCKED",
                 objective=f"Plan a reproduction of {paper.title}",
                 original_setup={},
@@ -377,6 +403,7 @@ def create_reproduction_plan(
             }
             plan = ReproductionPlan(
                 paper_id=paper_id,
+                experiment_id=experiment_id,
                 status="BLOCKED" if blockers else "READY",
                 objective=f"Reproduce the MNIST experiment described in {paper.title}",
                 original_setup=original_setup,

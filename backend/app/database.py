@@ -50,6 +50,33 @@ def initialize_database(engine: Engine) -> None:
                 connection.execute(
                     text(f"ALTER TABLE papers ADD COLUMN {name} {definition}")
                 )
+    if engine.dialect.name == "sqlite":
+        score_columns = {
+            column["name"]: column for column in inspect(engine).get_columns("reproducibility_scores")
+        }
+        if (
+            score_columns["experiment_id"]["nullable"] is False
+            or score_columns["score"]["nullable"] is False
+            or "plan_id" not in score_columns
+        ):
+            with engine.begin() as connection:
+                connection.exec_driver_sql(
+                    "DROP INDEX IF EXISTS ix_reproducibility_scores_experiment_id"
+                )
+                connection.exec_driver_sql(
+                    "ALTER TABLE reproducibility_scores "
+                    "RENAME TO reproducibility_scores_legacy"
+                )
+                Base.metadata.tables["reproducibility_scores"].create(
+                    connection, checkfirst=False
+                )
+                connection.exec_driver_sql(
+                    "INSERT INTO reproducibility_scores "
+                    "(id, experiment_id, plan_id, score, status, explanation_json, created_at) "
+                    "SELECT id, experiment_id, NULL, score, status, explanation_json, created_at "
+                    "FROM reproducibility_scores_legacy"
+                )
+                connection.exec_driver_sql("DROP TABLE reproducibility_scores_legacy")
 
 
 engine = make_engine()

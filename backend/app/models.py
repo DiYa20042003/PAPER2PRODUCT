@@ -139,10 +139,13 @@ class ReproducibilityScore(Base):
     __tablename__ = "reproducibility_scores"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    experiment_id: Mapped[str] = mapped_column(
-        ForeignKey("experiments.id", ondelete="CASCADE"), index=True
+    experiment_id: Mapped[str | None] = mapped_column(
+        ForeignKey("experiments.id", ondelete="CASCADE"), nullable=True, index=True
     )
-    score: Mapped[float] = mapped_column(Float)
+    plan_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reproduction_plans.id", ondelete="CASCADE"), nullable=True
+    )
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(32))
     explanation_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
