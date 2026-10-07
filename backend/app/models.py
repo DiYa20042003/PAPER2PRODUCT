@@ -22,6 +22,8 @@ class Paper(Base):
     source: Mapped[str] = mapped_column(String(32), default="unknown")
     source_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
     abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
+    authors_json: Mapped[str] = mapped_column(Text, default="[]")
+    metadata_json: Mapped[str] = mapped_column(Text, default="{}")
     status: Mapped[str] = mapped_column(String(32), default="INGESTED")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     sections: Mapped[list["PaperSection"]] = relationship(
