@@ -31,15 +31,21 @@ def make_paper(session_factory: sessionmaker, tmp_path) -> int:
     page = document.new_page()
     page.insert_text(
         (72, 72),
-        "MNIST Experiment\n"
-        "A. Researcher\n"
+        "Gradient-based learning applied to document recognition\n"
+        "Yann Lecun, Léon Bottou, Yoshua Bengio, Patrick Haffner\n"
         "ABSTRACT\n"
-        "The paper uses MNIST and reports 2.5% error.\n"
+        "The resulting database was called the modified NIST, or MNIST, dataset.\n"
+        "The test error rate stabilizes after around ten passes through the training set at 0.95%.\n"
         "I.\n"
         "METHODS\n"
-        "The authors train a convolutional network on the dataset.",
+        "Layer C1 is a convolutional layer with six feature maps.",
     )
-    document.set_metadata({"title": "MNIST Experiment", "author": "A. Researcher"})
+    document.set_metadata(
+        {
+            "title": "Gradient-based learning applied to document recognition",
+            "author": "Yann Lecun, Léon Bottou, Yoshua Bengio, Patrick Haffner",
+        }
+    )
     document.save(pdf_path)
     document.close()
     return ingest_pdf(session_factory, pdf_path)
@@ -63,14 +69,16 @@ class ValidatingFakeProvider:
                     kind="dataset",
                     statement="The paper uses MNIST.",
                     source_section_id=self.valid_section_id,
-                    evidence_quote="The paper uses MNIST and reports 2.5% error.",
+                    evidence_quote=(
+                        "The resulting database was called the modified NIST, or MNIST, dataset."
+                    ),
                     confidence=0.9,
                 ),
                 ExtractedFact(
-                    kind="metric",
-                    statement="The reported result is 99% accuracy.",
+                    kind="result",
+                    statement="The paper reports a separate validation set.",
                     source_section_id=self.valid_section_id,
-                    evidence_quote="The paper reports 99% accuracy.",
+                    evidence_quote="The paper reports a separate validation set.",
                     confidence=0.95,
                 ),
             ]
@@ -139,7 +147,7 @@ def test_provider_retries_and_unsupported_facts_are_flagged(tmp_path) -> None:
     assert result["confidence_level"] == "model-generated"
     assert len(result["facts"]) == 1
     assert result["facts"][0]["evidence_quote"] == (
-        "The paper uses MNIST and reports 2.5% error."
+        "The resulting database was called the modified NIST, or MNIST, dataset."
     )
     assert len(result["unsupported_facts"]) == 1
     assert "not an exact excerpt" in result["unsupported_facts"][0]["reason"]

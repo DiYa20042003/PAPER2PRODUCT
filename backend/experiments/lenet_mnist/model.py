@@ -4,6 +4,22 @@ import torch
 from torch import nn
 
 
+MODEL_SPEC = {
+    "name": "LeNet-5-style variant",
+    "input_shape": [1, 28, 28],
+    "layers": [
+        "Conv2d(1, 6, kernel_size=5) + ReLU",
+        "AvgPool2d(kernel_size=2, stride=2)",
+        "Conv2d(6, 16, kernel_size=5) + ReLU",
+        "AvgPool2d(kernel_size=2, stride=2)",
+        "Flatten",
+        "Linear(256, 120) + ReLU",
+        "Linear(120, 84) + ReLU",
+        "Linear(84, 10)",
+    ],
+}
+
+
 class LeNet5(nn.Module):
     """A compact LeNet-5 variant accepting 28x28 grayscale images."""
 

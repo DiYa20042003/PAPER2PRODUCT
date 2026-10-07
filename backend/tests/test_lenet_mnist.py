@@ -70,6 +70,8 @@ def test_smoke_run_writes_real_finite_metrics() -> None:
     config = json.loads((run_directory / "config.json").read_text(encoding="utf-8"))
     metrics = json.loads((run_directory / "metrics.json").read_text(encoding="utf-8"))
     assert config["max_train_samples"] == 256
+    assert config["optimizer"] == "Adam"
+    assert config["model_spec"]["input_shape"] == [1, 28, 28]
     assert metrics["status"] == "completed"
     assert metrics["training_samples"] == 256
     assert metrics["test_samples"] == 128

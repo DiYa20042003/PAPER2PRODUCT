@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
 from experiments.lenet_mnist.metrics import calculate_metrics
-from experiments.lenet_mnist.model import LeNet5
+from experiments.lenet_mnist.model import MODEL_SPEC, LeNet5
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -159,6 +159,10 @@ def run_experiment(args: argparse.Namespace) -> Path:
         "max_train_samples": args.max_train_samples,
         "max_test_samples": args.max_test_samples,
         "seed": args.seed,
+        "dataset": "torchvision.datasets.MNIST",
+        "preprocessing": "torchvision.transforms.ToTensor(); no additional augmentation",
+        "model_spec": MODEL_SPEC,
+        "optimizer": "Adam",
     }
     write_json(config_path, config)
     metrics: dict[str, Any] = {
