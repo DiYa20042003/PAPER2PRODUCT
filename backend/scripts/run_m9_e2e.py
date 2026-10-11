@@ -253,7 +253,6 @@ def main() -> int:
         f"score={comparison['score']} components={json.dumps(comparison['score_components'], sort_keys=True)} "
         f"weights={json.dumps({key: comparison['thresholds'][f'{key}_weight'] for key in ('metric_similarity', 'setup_similarity', 'evidence_quality')}, sort_keys=True)}",
         flush=True,
-        flush=True,
     )
     print("metrics.json:")
     print(json.dumps(metrics, indent=2, ensure_ascii=False))
