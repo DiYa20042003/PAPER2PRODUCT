@@ -6,3 +6,6 @@ backend/experiments/lenet_mnist/checkpoints/
 **/.pytest_cache/
 node_modules/
 .env
+**/.env
+**/.env.*
+!**/.env.example

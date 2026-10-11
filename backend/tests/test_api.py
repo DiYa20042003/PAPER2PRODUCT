@@ -88,6 +88,9 @@ def test_pdf_upload_analysis_claims_plan_and_report(api_client) -> None:
     assert plan.status_code == 200, plan.text
     assert plan.json()["status"] == "BLOCKED"
     plan_id = plan.json()["plan_id"]
+    persisted_plan = api_client.get(f"/papers/{paper_id}/plan")
+    assert persisted_plan.status_code == 200
+    assert persisted_plan.json()["plan_id"] == plan_id
     comparison = api_client.post(f"/plans/{plan_id}/compare", json={})
     assert comparison.status_code == 200
     assert comparison.json()["status"] == "BLOCKED"
@@ -95,6 +98,7 @@ def test_pdf_upload_analysis_claims_plan_and_report(api_client) -> None:
 
     report = api_client.get(f"/papers/{paper_id}/report")
     assert report.status_code == 200
+    assert report.json()["plan"]["plan_id"] == plan_id
     assert report.json()["comparison"]["status"] == "BLOCKED"
     pipeline = api_client.get("/pipeline/status")
     assert pipeline.status_code == 200

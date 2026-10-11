@@ -88,6 +88,8 @@ export interface Fact {
 }
 
 export interface Understanding {
+  paper_id: number;
+  title: string;
   extraction_method: string;
   confidence_level: string;
   confidence_score: number;
@@ -106,10 +108,30 @@ export interface Claim extends Fact {
 
 export interface Plan {
   plan_id: number;
+  paper_id: number;
+  experiment_id: string | null;
   status: "READY" | "BLOCKED";
   objective: string;
   blockers: string[];
   missing_information: string[];
+  reproduction_setup: {
+    run_id?: string | null;
+    dataset?: string;
+    training_samples?: number | null;
+    test_samples?: number | null;
+    input_shape?: number[] | string;
+    preprocessing?: string;
+    model?: { name?: string; layers?: string[]; [key: string]: unknown };
+    epochs?: number;
+    batch_size?: number;
+    learning_rate?: number;
+    optimizer?: string;
+    device?: string;
+    torch_version?: string;
+    final_epoch_metrics?: EpochMetric | null;
+    execution_time_seconds?: number | null;
+    [key: string]: unknown;
+  };
   differences: Array<{
     dimension: string;
     original_setup: string;
@@ -117,7 +139,13 @@ export interface Plan {
     significance: string;
     observed_run_path: string;
   }>;
-  reproduction_setup: Record<string, unknown>;
+}
+
+export interface EpochMetric {
+  epoch: number;
+  training_loss: number;
+  test_loss: number;
+  test_accuracy: number;
 }
 
 export interface Experiment {
@@ -152,15 +180,51 @@ export interface PipelineStatus {
 }
 
 export interface Comparison {
+  comparison_id: number | null;
+  plan_id: number;
+  experiment_id: string | null;
   status: string;
   score: number | null;
+  score_components: {
+    metric_similarity: number | null;
+    setup_similarity: number | null;
+    evidence_quality: number | null;
+  };
   rationale: string;
   blockers: string[];
-  metrics: Record<string, unknown>;
+  metrics: {
+    error_rate_absolute_difference_percentage_points?: number;
+    error_rate_relative_difference?: number | null;
+    [key: string]: unknown;
+  };
+  evidence: {
+    paper_baseline?: {
+      error_rate_percent: number;
+      accuracy_percent_derived: number;
+      section_id: number;
+      section_heading: string;
+      quote: string;
+    };
+    observed_run?: {
+      run_id: string;
+      metrics_path: string;
+      test_accuracy_fraction: number;
+      test_accuracy_percent: number;
+      test_error_rate_fraction: number;
+      test_error_rate_percent: number;
+      test_samples: number;
+      device: string;
+    };
+    source_quote_coverage?: { valid: number; total: number; fraction: number };
+    extraction_confidence?: { value: number; method: string };
+  };
   verification: Record<string, string[]>;
 }
 
 export interface PaperReport {
+  paper: Paper;
+  understanding: Understanding | null;
+  plan: Plan | null;
   comparison: Comparison | null;
 }
 
@@ -231,8 +295,8 @@ export function analyzePaper(paperId: number): Promise<Understanding> {
   return post(`/papers/${paperId}/analyze`, {});
 }
 
-export function createPlan(paperId: number): Promise<Plan> {
-  return post(`/papers/${paperId}/plan`, {});
+export function createPlan(paperId: number, experimentId?: string): Promise<Plan> {
+  return post(`/papers/${paperId}/plan`, { experiment_id: experimentId ?? null });
 }
 
 export function startExperiment(
