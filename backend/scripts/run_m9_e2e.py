@@ -18,6 +18,10 @@ REQUIRED_REPORT_SENTENCE = (
 )
 
 
+def normalize_source_text(text: str) -> str:
+    return " ".join(text.split())
+
+
 def api_request(
     base_url: str,
     path: str,
@@ -141,9 +145,6 @@ def main() -> int:
             "paper_id": paper_id,
             "plan_id": plan["plan_id"],
             "epochs": 5,
-            "batch_size": 64,
-            "learning_rate": 0.001,
-            "device": "cpu",
             "timeout_seconds": 7200,
         },
     )
@@ -164,15 +165,37 @@ def main() -> int:
                 else 0 <= epoch[key] <= 1
             )
             for epoch in epochs
-            for key in ("training_loss", "test_loss", "test_accuracy")
+            for key in ("train_loss", "training_loss", "test_loss", "test_accuracy")
         )
-        or metrics.get("training_samples", 0) <= 0
-        or metrics.get("test_samples", 0) <= 0
+        or metrics.get("training_samples") != 60000
+        or metrics.get("test_samples") != 10000
     ):
         raise RuntimeError("The persisted experiment metrics failed validation.")
+    final_epoch = epochs[-1]
+    confusion_matrix = metrics.get("confusion_matrix")
+    if (
+        not isinstance(confusion_matrix, list)
+        or len(confusion_matrix) != 10
+        or any(not isinstance(row, list) or len(row) != 10 for row in confusion_matrix)
+        or any(
+            not isinstance(value, int) or value < 0
+            for row in confusion_matrix
+            for value in row
+        )
+        or sum(map(sum, confusion_matrix)) != metrics["test_samples"]
+        or sum(confusion_matrix[label][label] for label in range(10))
+        != round(metrics["final_test_accuracy"] * metrics["test_samples"])
+        or metrics.get("final_test_accuracy") != final_epoch["test_accuracy"]
+        or metrics.get("final_test_loss") != final_epoch["test_loss"]
+        or not math.isfinite(metrics.get("execution_time_seconds", float("nan")))
+        or not metrics.get("device")
+        or not metrics.get("torch_version")
+    ):
+        raise RuntimeError("The final metrics export is incomplete or inconsistent.")
     print(
         f"experiment_status={final_experiment['status']} "
-        f"epochs={len(epochs)} device={metrics['device']}",
+        f"epochs={len(epochs)} training_samples={metrics['training_samples']} "
+        f"test_samples={metrics['test_samples']} device={metrics['device']}",
         flush=True,
     )
 
@@ -194,9 +217,42 @@ def main() -> int:
     if REQUIRED_REPORT_SENTENCE not in persisted_comparison["rationale"]:
         raise RuntimeError("The required setup-difference sentence is missing from the report.")
 
+    detail = api_request(base_url, f"/papers/{paper_id}")
+    baseline = comparison["evidence"]["paper_baseline"]
+    source_section = next(
+        (section for section in detail["sections"] if section["id"] == baseline["section_id"]),
+        None,
+    )
+    if (
+        source_section is None
+        or normalize_source_text(baseline["quote"])
+        not in normalize_source_text(source_section["content"])
+    ):
+        raise RuntimeError("Reference evidence did not match the extracted source section.")
+    accuracy_percent = baseline["accuracy_percent_derived"]
+    observed_percent = comparison["evidence"]["observed_run"]["test_accuracy_percent"]
     print(
-        f"comparison_id={comparison['comparison_id']} "
-        f"status={comparison['status']} score={comparison['score']}",
+        f"reference_section={baseline['section_heading']} "
+        f"pages={source_section['page_start']}-{source_section['page_end']}",
+        flush=True,
+    )
+    print(f"reference_quote={baseline['quote']}", flush=True)
+    print(
+        f"reference_error_rate={baseline['error_rate_percent']}% "
+        f"derived_accuracy={accuracy_percent}% "
+        f"conversion={baseline['conversion']}",
+        flush=True,
+    )
+    print(
+        f"verdict={comparison['status']} observed_accuracy={observed_percent}% "
+        f"absolute_difference={comparison['metrics']['error_rate_absolute_difference_percentage_points']} "
+        "percentage_points",
+        flush=True,
+    )
+    print(
+        f"score={comparison['score']} components={json.dumps(comparison['score_components'], sort_keys=True)} "
+        f"weights={json.dumps({key: comparison['thresholds'][f'{key}_weight'] for key in ('metric_similarity', 'setup_similarity', 'evidence_quality')}, sort_keys=True)}",
+        flush=True,
         flush=True,
     )
     print("metrics.json:")

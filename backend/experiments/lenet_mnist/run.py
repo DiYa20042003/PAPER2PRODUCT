@@ -15,7 +15,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
-from experiments.lenet_mnist.metrics import calculate_metrics
+from experiments.lenet_mnist.metrics import calculate_confusion_matrix, calculate_metrics
 from experiments.lenet_mnist.model import MODEL_SPEC, LeNet5
 
 
@@ -122,21 +122,31 @@ def evaluate(
     loader: DataLoader,
     criterion: nn.Module,
     device: torch.device,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     model.eval()
     loss_sum = 0.0
     correct = 0
     total = 0
+    actual_labels: list[int] = []
+    predicted_labels: list[int] = []
     for images, labels in loader:
         images = images.to(device)
         labels = labels.to(device)
         logits = model(images)
         loss = criterion(logits, labels)
+        predictions = logits.argmax(dim=1)
         batch_size = labels.size(0)
         loss_sum += loss.item() * batch_size
-        correct += (logits.argmax(dim=1) == labels).sum().item()
+        correct += (predictions == labels).sum().item()
+        actual_labels.extend(labels.detach().cpu().tolist())
+        predicted_labels.extend(predictions.detach().cpu().tolist())
         total += batch_size
-    return calculate_metrics(loss_sum, correct, total)
+    return {
+        **calculate_metrics(loss_sum, correct, total),
+        "confusion_matrix": calculate_confusion_matrix(
+            actual_labels, predicted_labels
+        ),
+    }
 
 
 def run_experiment(args: argparse.Namespace) -> Path:
@@ -204,13 +214,25 @@ def run_experiment(args: argparse.Namespace) -> Path:
                 testing = evaluate(model, test_loader, criterion, device)
                 epoch_metrics = {
                     "epoch": epoch,
+                    "train_loss": training["loss"],
                     "training_loss": training["loss"],
                     "test_loss": testing["loss"],
                     "test_accuracy": testing["accuracy"],
                 }
-                if not all(math.isfinite(value) for value in epoch_metrics.values()):
+                if not all(
+                    math.isfinite(epoch_metrics[key])
+                    for key in (
+                        "train_loss",
+                        "training_loss",
+                        "test_loss",
+                        "test_accuracy",
+                    )
+                ):
                     raise ValueError("epoch metrics contain non-finite values")
                 metrics["epochs"].append(epoch_metrics)
+                metrics["final_test_accuracy"] = testing["accuracy"]
+                metrics["final_test_loss"] = testing["loss"]
+                metrics["confusion_matrix"] = testing["confusion_matrix"]
                 log_line(
                     log_file,
                     f"epoch={epoch}/{args.epochs} "

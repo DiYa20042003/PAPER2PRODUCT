@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 import torch
 
-from experiments.lenet_mnist.metrics import calculate_metrics
+from experiments.lenet_mnist.metrics import (
+    calculate_confusion_matrix,
+    calculate_metrics,
+)
 from experiments.lenet_mnist.model import LeNet5
 
 
@@ -24,6 +27,18 @@ def test_lenet_forward_output_shape() -> None:
 def test_metric_calculation() -> None:
     metrics = calculate_metrics(loss_sum=5.0, correct=3, total=4)
     assert metrics == {"loss": 1.25, "accuracy": 0.75}
+
+
+def test_confusion_matrix_uses_actual_rows_and_predicted_columns() -> None:
+    matrix = calculate_confusion_matrix(
+        actual=[0, 0, 1, 1],
+        predicted=[0, 1, 1, 0],
+    )
+    assert matrix[0][0] == 1
+    assert matrix[0][1] == 1
+    assert matrix[1][0] == 1
+    assert matrix[1][1] == 1
+    assert sum(map(sum, matrix)) == 4
 
 
 def test_metric_calculation_rejects_empty_dataset() -> None:
@@ -83,9 +98,17 @@ def test_smoke_run_writes_real_finite_metrics() -> None:
     assert epoch["epoch"] == 1
     assert all(
         math.isfinite(epoch[field])
-        for field in ("training_loss", "test_loss", "test_accuracy")
+        for field in ("train_loss", "training_loss", "test_loss", "test_accuracy")
     )
+    assert epoch["train_loss"] == epoch["training_loss"]
     assert epoch["training_loss"] > 0
     assert epoch["test_loss"] > 0
     assert 0 <= epoch["test_accuracy"] <= 1
+    assert metrics["final_test_accuracy"] == epoch["test_accuracy"]
+    assert metrics["final_test_loss"] == epoch["test_loss"]
+    confusion_matrix = metrics["confusion_matrix"]
+    assert len(confusion_matrix) == 10
+    assert all(len(row) == 10 for row in confusion_matrix)
+    assert sum(map(sum, confusion_matrix)) == metrics["test_samples"]
+    assert sum(confusion_matrix[label][label] for label in range(10)) / metrics["test_samples"] == epoch["test_accuracy"]
     assert (run_directory / "model.pt").stat().st_size > 0
