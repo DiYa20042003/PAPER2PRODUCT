@@ -61,6 +61,8 @@ npm run dev
 
 Open <http://localhost:3000>. The dashboard loads persisted paper and experiment records from the API; it does not seed or substitute mock data. Select the paper in the library, inspect the source-backed claims and reproduction-plan differences, review the saved run's charts and process logs, and inspect the evidence comparison and score. PDF upload and URL/arXiv/local-path ingestion controls are also available.
 
+For a five-command walkthrough, talk track, network/provider fallback, and captured UI screenshots, see [docs/DEMO.md](docs/DEMO.md).
+
 ### First-run API demo
 
 A clean checkout has no persisted papers or experiments because the SQLite database, downloaded PDFs, and MNIST data are local runtime files. With the backend running, execute this bounded demo in a second PowerShell window from any directory. It fetches the LeCun paper, analyzes it, runs one epoch on MNIST subsets, and creates a plan and comparison from that completed run:
