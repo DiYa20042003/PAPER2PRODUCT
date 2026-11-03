@@ -98,9 +98,11 @@ after acknowledging it was successful in these checks.
 `16.4.0` snapshot reported 18 dependency vulnerabilities (16 moderate, 1 high,
 1 critical). The maintenance update raises Next.js to `16.4.4`; a subsequent
 `npm audit` on that candidate lockfile reported 17 vulnerabilities (16
-moderate, 1 high, 0 critical). The maintenance PR's GitHub CI must pass and
-the remaining advisories must be reviewed before using this development app
-on the public internet. The repository being public does not mean that a
+moderate, 1 high, 0 critical). The maintenance PR's GitHub CI passed: 39
+backend tests, frontend lint, typecheck, and production build succeeded in
+[run 41605111793](https://github.com/DiYa20042003/PAPER2PRODUCT/actions/runs/41605111793).
+The remaining advisories must still be reviewed before using this development
+app on the public internet. The repository being public does not mean that a
 hosted app or API is available.
 
 ## Backup
