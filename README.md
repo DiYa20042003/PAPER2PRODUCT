@@ -94,12 +94,16 @@ HTTP 200, then `scripts/stop.ps1` stopped both recorded processes. The first
 Next.js startup/build attempt can stop at the security advisory notice; retry
 after acknowledging it was successful in these checks.
 
-**Security limitation:** the installed Next.js `16.4.0` emitted a known
-security-vulnerability warning. Clean-clone `npm ci` reported 18 dependency
-vulnerabilities (16 moderate, 1 high, 1 critical). This deployment check did
-not upgrade dependencies. Do not expose this development deployment to the
-public internet; review and apply the vendor security update before publishing
-or hosting it.
+**Security limitation:** a clean-clone install of the earlier Next.js
+`16.4.0` snapshot reported 18 dependency vulnerabilities (16 moderate, 1 high,
+1 critical). The maintenance update raises Next.js to `16.4.4`; a subsequent
+`npm audit` on that candidate lockfile reported 17 vulnerabilities (16
+moderate, 1 high, 0 critical). The maintenance PR's GitHub CI passed: 39
+backend tests, frontend lint, typecheck, and production build succeeded in
+[run 41605111793](https://github.com/DiYa20042003/PAPER2PRODUCT/actions/runs/41605111793).
+The remaining advisories must still be reviewed before using this development
+app on the public internet. The repository being public does not mean that a
+hosted app or API is available.
 
 ## Backup
 
@@ -131,7 +135,7 @@ For a five-command walkthrough, talk track, network/provider fallback, and captu
 
 ## Collaborating
 
-Clone the private repository and start the local demo with:
+Clone the public repository and start the local demo with:
 
 ```powershell
 git clone https://github.com/DiYa20042003/PAPER2PRODUCT.git
@@ -144,9 +148,17 @@ pull request expectations. The pull request checklist is in
 [.github/pull_request_template.md](.github/pull_request_template.md).
 
 The GitHub Actions workflow runs backend tests and frontend lint, typecheck,
-and production build. **CI is untested until it has run on GitHub.** The build
-step retries up to three times because the current Next.js security advisory
-gate stopped two of three local build attempts; one local attempt passed.
+and production build. CI passed on `master` commit
+`29d94df7fc04e868287246c2663b783415bd60c4`: 39 backend tests passed, and the
+frontend lint, typecheck, and production build steps succeeded. See the
+[workflow run](https://github.com/DiYa20042003/PAPER2PRODUCT/actions/runs/41601272620).
+The build step retries up to three times because the advisory gate was
+intermittent in earlier local checks.
+
+The public repository is not a public hosted demo: the read-only recorded-run
+mode was not implemented. Direct pushes to `master` are blocked; GitHub
+requires a pull request with one approval, and force pushes and branch
+deletions are disabled.
 
 ### First-run API demo
 
@@ -217,4 +229,5 @@ The tests cover ingestion, analysis provenance, planning, comparison/scoring, AP
 - Rule-based extraction has lower confidence and can return noisy candidates; evidence validation verifies source quotation but does not establish semantic correctness.
 - Reported comparison scores are evidence summaries, not proof of causal explanations or exact scientific replication.
 - The local workflow uses SQLite and a single vetted experiment runner; it is not a general-purpose arbitrary-code execution or distributed-agent platform.
+- A public hosted, read-only recorded-run viewer is not implemented; the application runs locally.
 - Future work could improve PDF layout/table extraction, add reviewable claim curation and authentication, support additional constrained experiments, and provide more explicit report export formats.
