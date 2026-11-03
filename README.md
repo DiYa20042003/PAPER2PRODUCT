@@ -25,41 +25,77 @@ Generated or extracted text is not executed as code.
 - Node.js and npm compatible with the versions in `frontend/package-lock.json`.
 - Network access is needed on first run if PyTorch must download MNIST or if a PDF must be fetched. Existing local PDF, dataset, and database are ignored runtime files, not tracked deliverables.
 
-## Backend setup and API
+## Local Windows deployment
 
-From the repository root, install backend requirements into the project environment if needed:
+The supported local launcher starts the API and frontend, waits for API health
+and a responding dashboard, then opens the browser. Install Python 3.10, Node.js
+and npm first. From the repository root, create the virtual environment and
+install dependencies once:
 
 ```powershell
 cd C:\Projects\PAPER2PRODUCT\backend
 py -3.10 -m venv .venv
-.venv\Scripts\Activate.ps1
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-Optional provider configuration goes in `backend/.env` or process environment variables. Start from `backend/.env.example`; keep real keys local and never commit them. With no configured provider key, paper analysis uses the labeled rule-based fallback.
-
-Start the API:
-
-```powershell
-cd C:\Projects\PAPER2PRODUCT\backend
-.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Health: <http://localhost:8000/health>. Interactive OpenAPI documentation: <http://localhost:8000/docs>. The live OpenAPI schema is at <http://localhost:8000/openapi.json>.
-
-Main operations include `POST /papers/ingest`, `POST /papers/upload`, `GET /papers`, `POST /papers/{paper_id}/analyze`, `GET /papers/{paper_id}/claims`, `POST /papers/{paper_id}/plan`, `POST /experiments`, `GET /experiments/{experiment_id}/logs`, `POST /plans/{plan_id}/compare`, and `GET /papers/{paper_id}/report`. See `/docs` for request and response schemas.
-
-## Frontend setup and demo
-
-The frontend defaults to `http://localhost:8000`. To use another API origin, set `NEXT_PUBLIC_API_URL` in `frontend/.env.local` before starting Next.js.
-
-```powershell
-cd C:\Projects\PAPER2PRODUCT\frontend
+cd ..\frontend
 npm ci
-npm run dev
+cd ..
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Open <http://localhost:3000>. The dashboard loads persisted paper and experiment records from the API; it does not seed or substitute mock data. Select the paper in the library, inspect the source-backed claims and reproduction-plan differences, review the saved run's charts and process logs, and inspect the evidence comparison and score. PDF upload and URL/arXiv/local-path ingestion controls are also available.
+Edit root `.env` for `API_PORT`, `FRONTEND_PORT`, `NEXT_PUBLIC_API_URL`, and
+`PAPER2PRODUCT_CORS_ORIGINS`. The frontend API URL is embedded at build time in
+production mode, so set it before starting/building. Process environment values
+take precedence over `.env`. Optional provider keys can also be set there; with
+no configured provider key, analysis uses the labeled rule-based fallback.
+Never commit `.env` or real keys.
+
+Start the development servers and open the dashboard:
+
+```powershell
+.\scripts\start.ps1
+```
+
+The launcher activates `backend/.venv`, starts Uvicorn and Next.js, checks
+`/health` and the dashboard for HTTP 200, then opens the browser. To run the
+production frontend, it runs `next build` and starts `next start`:
+
+```powershell
+.\scripts\start.ps1 -Production
+```
+
+Stop processes started by the launcher:
+
+```powershell
+.\scripts\stop.ps1
+```
+
+API health and OpenAPI are at `http://127.0.0.1:<API_PORT>/health` and
+`/docs`; frontend is at `http://localhost:<FRONTEND_PORT>`. For example, with
+the default ports these resolve to `http://127.0.0.1:8000/health`,
+`http://127.0.0.1:8000/docs`, and `http://localhost:3000`.
+
+The backend also reads provider-only settings from `backend/.env` for direct
+manual Uvicorn launches. The supported launcher reads the root `.env` and
+passes its values to both services.
+
+## Backup
+
+Create a ZIP containing the committed source, the latest completed run's
+`metrics.json`, `config.json`, and `log.txt`, plus the local SQLite database:
+
+```powershell
+.\scripts\backup.ps1
+```
+
+The archive is written under `local-backups/`, which is ignored by Git. It
+does not include `.env`, downloaded MNIST data, or model weights. Store the ZIP
+somewhere separate from the laptop for disaster recovery.
+
+The dashboard loads persisted paper and experiment records from the API; it
+does not seed or substitute mock data. Select the paper in the library, inspect
+the source-backed claims and reproduction-plan differences, review the saved
+run's charts and process logs, and inspect the evidence comparison and score.
+PDF upload and URL/arXiv/local-path ingestion controls are also available.
 
 For a five-command walkthrough, talk track, network/provider fallback, and captured UI screenshots, see [docs/DEMO.md](docs/DEMO.md).
 
