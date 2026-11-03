@@ -22,6 +22,13 @@
 - Final backend suite: 39 passed. Frontend lint and typecheck passed. Production build succeeded through the production launcher. A separate later plain `npm run build` attempt was stopped by the Next.js security advisory gate; it was not counted as a pass.
 - **Deployment blocker:** Next.js 16.4.0 reported a known security vulnerability; clean-clone `npm ci` reported 18 vulnerabilities (16 moderate, 1 high, 1 critical). No dependency upgrade was performed. Do not publish this app publicly until the affected dependencies are reviewed and updated.
 
+## Private GitHub collaboration — 2026-11-03
+
+- Created private repository `https://github.com/DiYa20042003/PAPER2PRODUCT` and pushed `master`, the separate unmerged `security/next-upgrade` branch, and tags `v0.1-midsem` and `v0.2-deploy`. Remote tag-object hashes and peeled commit hashes matched the local refs.
+- GitHub branch-protection API returned HTTP 403 with: “Upgrade to GitHub Pro or make this repository public to enable this feature.” Branch protection is not enabled.
+- The collaborator was not invited through the API because that operation requires the teammate's GitHub username; an email address alone was not provided as an API invitee identifier. The repository owner can invite by email from GitHub repository Settings if the address is associated with the teammate's GitHub account.
+- **Known limitation:** the current master still uses Next.js 16.4.0; clean-clone `npm ci` reported 18 npm vulnerabilities (16 moderate, 1 high, 1 critical). CI has not yet run on GitHub and remains untested. The `security/next-upgrade` branch is separate and has not been merged.
+
 ## M6 comparison policy
 
 Rates are fractions in calculations. A paper-reported error percentage is converted by `accuracy = 1 - error_percent / 100`. `REPRODUCED` requires no recorded setup differences and an absolute error-rate gap no greater than 0.005 (0.5 percentage points); `PARTIALLY_REPRODUCED` allows a gap up to 0.02 (2 percentage points) when setup differences remain; larger gaps are `NOT_REPRODUCED`. Missing source or run evidence is `BLOCKED`, with no numeric score. The configurable 0–100 score weights metric similarity at 60%, setup similarity at 25%, and evidence quality at 15%; evidence quality is the mean of exact-source-quote coverage and the recorded extraction confidence. Callers can override the thresholds and weights, which are persisted with each score.

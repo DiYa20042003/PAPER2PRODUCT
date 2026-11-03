@@ -129,10 +129,18 @@ PDF upload and URL/arXiv/local-path ingestion controls are also available.
 
 For a five-command walkthrough, talk track, network/provider fallback, and captured UI screenshots, see [docs/DEMO.md](docs/DEMO.md).
 
-## Collaboration and CI
+## Collaborating
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for cloning, local startup, tests,
-branch naming, and pull request expectations. The pull request checklist is in
+Clone the private repository and start the local demo with:
+
+```powershell
+git clone https://github.com/DiYa20042003/PAPER2PRODUCT.git
+cd PAPER2PRODUCT
+.\scripts\start.ps1
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, tests, branch naming, and
+pull request expectations. The pull request checklist is in
 [.github/pull_request_template.md](.github/pull_request_template.md).
 
 The GitHub Actions workflow runs backend tests and frontend lint, typecheck,
