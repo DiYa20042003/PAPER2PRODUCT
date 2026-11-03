@@ -129,6 +129,17 @@ PDF upload and URL/arXiv/local-path ingestion controls are also available.
 
 For a five-command walkthrough, talk track, network/provider fallback, and captured UI screenshots, see [docs/DEMO.md](docs/DEMO.md).
 
+## Collaboration and CI
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for cloning, local startup, tests,
+branch naming, and pull request expectations. The pull request checklist is in
+[.github/pull_request_template.md](.github/pull_request_template.md).
+
+The GitHub Actions workflow runs backend tests and frontend lint, typecheck,
+and production build. **CI is untested until it has run on GitHub.** The build
+step retries up to three times because the current Next.js security advisory
+gate stopped two of three local build attempts; one local attempt passed.
+
 ### First-run API demo
 
 A clean checkout has no persisted papers or experiments because the SQLite database, downloaded PDFs, and MNIST data are local runtime files. With the backend running, execute this bounded demo in a second PowerShell window from any directory. It fetches the LeCun paper, analyzes it, runs one epoch on MNIST subsets, and creates a plan and comparison from that completed run:

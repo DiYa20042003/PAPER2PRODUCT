@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest tests -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Run frontend typecheck
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend (retry known advisory gate)
+        working-directory: frontend
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            echo "Production build attempt ${attempt}/3"
+            if npm run build; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Build stopped; retrying because the current Next.js advisory gate was intermittent locally."
+            fi
+          done
+          echo "Production build failed on all three attempts."
+          exit 1
