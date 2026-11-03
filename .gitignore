@@ -5,6 +5,17 @@ backend/experiments/lenet_mnist/checkpoints/
 **/__pycache__/
 **/.pytest_cache/
 node_modules/
+**/.next/
+*.py[cod]
+*.log
+log.txt
+**/logs/
+*.pt
+*.pth
+*.ckpt
+backups/*.zip
+local-backups/*.zip
+**/backups/*.zip
 .env
 **/.env
 **/.env.*
