@@ -78,6 +78,29 @@ The backend also reads provider-only settings from `backend/.env` for direct
 manual Uvicorn launches. The supported launcher reads the root `.env` and
 passes its values to both services.
 
+### Deployment verification (2026-11-03)
+
+The launcher was exercised on this Windows machine in development and
+production mode, with default ports and with custom ports `8101`/`3101`.
+Observed readiness included `API health: HTTP 200`,
+`Frontend: HTTP 200`, and a configured CORS preflight returning HTTP 200 with
+`Access-Control-Allow-Origin: http://localhost:3102`. Production mode ran
+`next build`, started the production server, and returned HTTP 200 from both
+the API and dashboard.
+
+A clean local clone was prepared with the commands in this README and launched
+using `scripts/start.ps1`; the API health endpoint and dashboard both returned
+HTTP 200, then `scripts/stop.ps1` stopped both recorded processes. The first
+Next.js startup/build attempt can stop at the security advisory notice; retry
+after acknowledging it was successful in these checks.
+
+**Security limitation:** the installed Next.js `16.4.0` emitted a known
+security-vulnerability warning. Clean-clone `npm ci` reported 18 dependency
+vulnerabilities (16 moderate, 1 high, 1 critical). This deployment check did
+not upgrade dependencies. Do not expose this development deployment to the
+public internet; review and apply the vendor security update before publishing
+or hosting it.
+
 ## Backup
 
 Create a ZIP containing the committed source, the latest completed run's
@@ -90,6 +113,13 @@ Create a ZIP containing the committed source, the latest completed run's
 The archive is written under `local-backups/`, which is ignored by Git. It
 does not include `.env`, downloaded MNIST data, or model weights. Store the ZIP
 somewhere separate from the laptop for disaster recovery.
+
+The backup command was run successfully against the local database and the
+latest completed run. It printed the ZIP member list, including
+`local-data/paper2product.sqlite3` and `recorded-run/{metrics.json,config.json,log.txt}`.
+The produced archive was
+`local-backups/paper2product-backup-20261103-124803-e035340.zip` on the
+verification machine; local backups are ignored and are not committed.
 
 The dashboard loads persisted paper and experiment records from the API; it
 does not seed or substitute mock data. Select the paper in the library, inspect
