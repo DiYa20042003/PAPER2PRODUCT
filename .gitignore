@@ -16,6 +16,7 @@ log.txt
 backups/*.zip
 local-backups/*.zip
 **/backups/*.zip
+.runtime/
 .env
 **/.env
 **/.env.*
